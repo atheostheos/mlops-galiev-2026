@@ -1,0 +1,22 @@
+# Пока здесь только то, что нужно для генерации данных.
+# По ходу курса этот файл вырастет: занятие 3 — гиперпараметры,
+# занятие 5 — пути стадий, занятие 6 — настройки MLflow.
+
+seed: 42
+
+data:
+  n_samples: 20000
+  raw_path: data/raw/churn.csv
+  processed_dir: data/processed
+  test_size: 0.2
+  val_size: 0.1
+
+# TODO (занятие 1): перенести сюда список признаков из ноутбука
+features:
+  numeric: []
+  categorical: []
+  binary: []
+
+# TODO (занятие 3): перенести сюда гиперпараметры модели
+train:
+  model: logreg
