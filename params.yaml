@@ -11,11 +11,21 @@ data:
   test_size: 0.2
   val_size: 0.1
 
-# TODO (занятие 1): перенести сюда список признаков из ноутбука
+# Занятие 1: список признаков из ноутбука
 features:
-  numeric: []
-  categorical: []
-  binary: []
+  numeric:
+    - tenure_months
+    - monthly_charges
+    - total_charges
+    - num_support_calls
+    - avg_monthly_gb
+  categorical:
+    - contract_type
+    - internet_service
+    - payment_method
+  binary:
+    - has_tech_support
+    - is_senior
 
 # TODO (занятие 3): перенести сюда гиперпараметры модели
 train:
