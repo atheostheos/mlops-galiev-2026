@@ -8,6 +8,7 @@
 from __future__ import annotations
 
 import os
+import subprocess
 from pathlib import Path
 from typing import Any
 
@@ -36,6 +37,14 @@ def resolve(relative: str) -> Path:
 def feature_columns(params: dict[str, Any]) -> list:
     f = params["features"]
     return list(f["numeric"]) + list(f["categorical"]) + list(f["binary"])
+
+
+def get_git_sha() -> str:
+    return (
+        subprocess.check_output(["git", "rev-parse", "--short", "HEAD"], cwd=PROJECT_ROOT)
+        .decode("ascii")
+        .strip()
+    )
 
 
 TARGET = "churn"

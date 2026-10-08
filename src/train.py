@@ -17,6 +17,8 @@ from __future__ import annotations
 
 import json
 import os
+import platform
+import sys
 from typing import Any
 
 import joblib
@@ -26,7 +28,7 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import average_precision_score, f1_score, roc_auc_score
 from sklearn.pipeline import Pipeline
 
-from src.config import TARGET, feature_columns, load_params, resolve
+from src.config import TARGET, feature_columns, get_git_sha, load_params, resolve
 from src.features import build_preprocessor
 from src.logging_setup import setup_logging
 
@@ -46,17 +48,18 @@ def load_dataset(params: dict[str, Any]) -> dict[str, pd.DataFrame]:
 def build_model(params: dict[str, Any]):
     seed = params["seed"]
     t = params["train"]
-    model = t["model"]
+    name = t["model"]
+    cfg = t.get(name, {})
 
-    match model:
+    match name:
         case "logreg":
-            return LogisticRegression(random_state=seed)
+            return LogisticRegression(random_state=seed, **cfg)
         case "random_forest":
-            return RandomForestClassifier(random_state=seed)
+            return RandomForestClassifier(random_state=seed, **cfg)
         case "gradient_boosting":
-            return GradientBoostingClassifier(random_state=seed)
+            return GradientBoostingClassifier(random_state=seed, **cfg)
         case _:
-            return NotImplementedError(f"Uknown model name: {model}")
+            return NotImplementedError(f"Uknown model name: {name}")
 
 
 def build_pipeline(params: dict[str, Any]) -> Pipeline:
@@ -73,18 +76,25 @@ def train_model(params: dict[str, Any], pipe: Pipeline, train: pd.DataFrame) -> 
 
 
 def validate_model(params: dict[str, Any], pipe: Pipeline, val: pd.DataFrame) -> dict[Any]:
-    thresh = params["eval"]["threshold"]
+    thresh = params["evaluate"]["threshold"]
+    min_roc_auc = params["evaluate"]["min_roc_auc"]
 
     y_true = val[TARGET]
 
     y_proba = pipe.predict_proba(val[feature_columns(params)])[:, 1]
     y_pred = (y_proba >= thresh).astype(int)
 
-    return {
+    metrics = {
         "roc_auc": float(roc_auc_score(y_true, y_proba)),
         "pr_auc": float(average_precision_score(y_true, y_proba)),
         "f1": float(f1_score(y_true, y_pred)),
     }
+
+    if metrics["roc_auc"] < min_roc_auc:
+        log.error(f"ROC-AUC {metrics['roc_auc']: .4f} is lower than specified threshold {min_roc_auc: .4f}")
+        sys.exit(1)
+
+    return metrics
 
 
 def main() -> None:
@@ -103,14 +113,23 @@ def main() -> None:
     metrics = validate_model(params, pipe, data["val"])
     log.info(f"Validation metrics: {metrics}")
 
-    reports_path = os.path.join(resolve(params["data"]["reports_dir"]), "train_metrics.json")
-    with open(reports_path, "w") as f:
-        json.dump(metrics, f, indent=2)
-    log.info(f"Metrics saved to: {reports_path}")
-
     model_dir = resolve(params["train"]["save_dir"])
     model_path = os.path.join(model_dir, "model.joblib")
+    meta_path = os.path.join(model_dir, "model_meta.json")
     os.makedirs(model_dir, exist_ok=True)
+
+    meta = {
+        "name": params["train"]["model"],
+        "git_sha": get_git_sha(),
+        "python_version": platform.python_version(),
+        "hyperparams": params["train"].get(params["train"]["model"], {}),
+        "features": feature_columns(params),
+        "metrics": metrics,
+    }
+    with open(meta_path, "w") as f:
+        json.dump(meta, f, indent=2)
+    log.info(f"Model meta saved to: {meta_path}")
+
     joblib.dump(pipe, model_path)
     log.info(f"Model saved to: {model_path}")
 

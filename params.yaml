@@ -8,7 +8,6 @@ data:
   n_samples: 20000
   raw_path: data/raw/churn.csv
   processed_dir: data/processed
-  reports_dir: reports
   test_size: 0.2
   val_size: 0.1
 
@@ -27,10 +26,21 @@ features:
     - has_tech_support
     - is_senior
 
-eval:
-  threshold: 0.5
-
-# TODO (занятие 3): перенести сюда гиперпараметры модели
 train:
   save_dir: models
-  model: logreg
+  model: gradient_boosting
+  logreg:
+    C: 1.0
+    max_iter: 1000
+  random_forest:
+    n_estimators: 300
+    max_depth: 12
+    min_samples_leaf: 5
+  gradient_boosting:
+    n_estimators: 200
+    learning_rate: 0.05
+    max_depth: 3
+
+evaluate:
+  threshold: 0.5
+  min_roc_auc: 0.75
