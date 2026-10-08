@@ -2,11 +2,11 @@
 name = "churn-mlops"
 version = "1.0.0"
 description = "Сквозной учебный проект курса MLOps: сервис предсказания оттока"
-requires-python = ">=3.9"
+requires-python = ">=3.10"
 
 [tool.ruff]
 line-length = 110
-target-version = "py39"   # код работает и на 3.9; курс рекомендует 3.11
+target-version = "py310"   # код работает и на 3.9; курс рекомендует 3.11
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B", "SIM"]

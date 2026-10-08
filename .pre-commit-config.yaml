@@ -1,0 +1,23 @@
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.6.0
+    hooks:
+      - id: trailing-whitespace
+        exclude: &course_files '^(docs|lessons|bot)/|[^/]+\.md$'
+      - id: end-of-file-fixer
+        exclude: *course_files
+      - id: check-yaml
+        exclude: *course_files
+      - id: check-added-large-files
+        args: [--maxkb=1000]
+      - id: check-merge-conflict
+      - id: detect-private-key
+
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.16.10
+    hooks:
+      - id: ruff
+        args: [--fix]
+        exclude: *course_files
+      - id: ruff-format
+        exclude: *course_files
