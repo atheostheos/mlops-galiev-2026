@@ -12,33 +12,107 @@ TODO (занятие 1): перенести сюда логику из notebooks
 
 Запуск: python -m src.train
 """
+
 from __future__ import annotations
 
-from src.config import load_params
+import json
+import os
+from typing import Any
+
+import joblib
+import pandas as pd
+from sklearn.ensemble import GradientBoostingClassifier, RandomForestClassifier
+from sklearn.linear_model import LogisticRegression
+from sklearn.metrics import average_precision_score, f1_score, roc_auc_score
+from sklearn.pipeline import Pipeline
+
+from src.config import TARGET, feature_columns, load_params, resolve
+from src.features import build_preprocessor
 from src.logging_setup import setup_logging
 
 log = setup_logging()
 
 
+def load_dataset(params: dict[str, Any]) -> dict[str, pd.DataFrame]:
+    d = params["data"]
+    processed_dir = resolve(d["processed_dir"])
+
+    return {
+        "train": pd.read_csv(os.path.join(processed_dir, "train.csv")),
+        "val": pd.read_csv(os.path.join(processed_dir, "val.csv")),
+    }
+
+
+def build_model(params: dict[str, Any]):
+    seed = params["seed"]
+    t = params["train"]
+    model = t["model"]
+
+    match model:
+        case "logreg":
+            return LogisticRegression(random_state=seed)
+        case "random_forest":
+            return RandomForestClassifier(random_state=seed)
+        case "gradient_boosting":
+            return GradientBoostingClassifier(random_state=seed)
+        case _:
+            return NotImplementedError(f"Uknown model name: {model}")
+
+
+def build_pipeline(params: dict[str, Any]) -> Pipeline:
+    return Pipeline(
+        [
+            ("preprocess", build_preprocessor(params)),
+            ("model", build_model(params)),
+        ]
+    )
+
+
+def train_model(params: dict[str, Any], pipe: Pipeline, train: pd.DataFrame) -> None:
+    pipe.fit(train[feature_columns(params)], train[TARGET])
+
+
+def validate_model(params: dict[str, Any], pipe: Pipeline, val: pd.DataFrame) -> dict[Any]:
+    thresh = params["eval"]["threshold"]
+
+    y_true = val[TARGET]
+
+    y_proba = pipe.predict_proba(val[feature_columns(params)])[:, 1]
+    y_pred = (y_proba >= thresh).astype(int)
+
+    return {
+        "roc_auc": float(roc_auc_score(y_true, y_proba)),
+        "pr_auc": float(average_precision_score(y_true, y_proba)),
+        "f1": float(f1_score(y_true, y_pred)),
+    }
+
+
 def main() -> None:
     params = load_params()
 
-    # TODO: Студент заполняет этот код
-    #
-    # Шаги:
-    # 1. Загрузить данные train.csv и val.csv из data/processed/
-    # 2. Подготовить X, y для обучения и валидации
-    # 3. Создать Pipeline(препроцессор + RandomForestClassifier)
-    # 4. Обучить модель на train
-    # 5. Предсказать на val
-    # 6. Посчитать метрики (roc_auc, f1, pr_auc)
-    # 7. Сохранить модель в models/model.joblib
-    # 8. Сохранить метрики в reports/train_metrics.json
-    #
-    # Подсказка: параметры модели берутся из params["model"]
-    # Проверка: два запуска подряд должны дать одинаковые метрики
+    data = load_dataset(params=params)
+    log.info("Data loaded")
 
-    pass
+    pipe = build_pipeline(params=params)
+    log.info("Pipeline built")
+
+    log.info("Starting training")
+    train_model(params, pipe, data["train"])
+    log.info("Model trained")
+
+    metrics = validate_model(params, pipe, data["val"])
+    log.info(f"Validation metrics: {metrics}")
+
+    reports_path = os.path.join(resolve(params["data"]["reports_dir"]), "train_metrics.json")
+    with open(reports_path, "w") as f:
+        json.dump(metrics, f, indent=2)
+    log.info(f"Metrics saved to: {reports_path}")
+
+    model_dir = resolve(params["train"]["save_dir"])
+    model_path = os.path.join(model_dir, "model.joblib")
+    os.makedirs(model_dir, exist_ok=True)
+    joblib.dump(pipe, model_path)
+    log.info(f"Model saved to: {model_path}")
 
 
 if __name__ == "__main__":

@@ -11,23 +11,40 @@ TODO (занятие 1): собрать здесь ColumnTransformer.
 Подсказка: почему препроцессор обязан ехать в одном Pipeline с моделью,
 разбирается на паре. Если сделать иначе — сервис на занятии 10 сломается.
 """
+
 from __future__ import annotations
 
 from typing import Any
 
+from sklearn.compose import ColumnTransformer
+from sklearn.impute import SimpleImputer
+from sklearn.pipeline import Pipeline
+from sklearn.preprocessing import OneHotEncoder, StandardScaler
+
+from src.config import load_params
+
 
 def build_preprocessor(params: dict[str, Any]):
-    """Собирает ColumnTransformer для разных типов признаков.
+    params = load_params()
+    f = params["features"]
 
-    TODO: Студент заполняет этот код
+    num_pipe = Pipeline([("impute", SimpleImputer(strategy="median")), ("scale", StandardScaler())])
 
-    Шаги:
-    1. Создать Pipeline для числовых: заполнение пропусков + масштабирование
-    2. Создать Pipeline для категориальных: заполнение пропусков + OneHotEncoder
-    3. Создать ColumnTransformer который объединяет все три типа
-    4. Вернуть препроцессор
+    cat_pipe = Pipeline(
+        [
+            ("impute", SimpleImputer(strategy="most_frequent")),
+            ("onehot", OneHotEncoder(handle_unknown="ignore", sparse_output=False)),
+        ]
+    )
 
-    Подсказка: списки колонок берутся из params["features"]
-    """
-    # TODO: импорты и код здесь
-    pass
+    bin_pipe = "passthrough"
+
+    preprocessor = ColumnTransformer(
+        transformers=[
+            ("num", num_pipe, f["numeric"]),
+            ("cat", cat_pipe, f["categorical"]),
+            ("bin", bin_pipe, f["binary"]),
+        ],
+        remainder="drop",
+    )
+    return preprocessor
