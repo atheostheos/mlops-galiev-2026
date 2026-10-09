@@ -9,8 +9,12 @@ __pycache__/
 htmlcov/
 
 # Данные и модели — в DVC, не в Git
-/data/
-/models/
+/data/**
+/models/**
+!/data/**/
+!/models/**/
+!/data/**/*.dvc
+!/models/**/*.dvc
 
 # Метрики и отчёты — маленькие, их держим в Git:
 # так работают `dvc metrics diff` и сравнение между коммитами

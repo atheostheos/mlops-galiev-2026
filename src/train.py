@@ -23,6 +23,7 @@ from typing import Any
 
 import joblib
 import pandas as pd
+import yaml
 from sklearn.ensemble import GradientBoostingClassifier, RandomForestClassifier
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import average_precision_score, f1_score, roc_auc_score
@@ -97,6 +98,21 @@ def validate_model(params: dict[str, Any], pipe: Pipeline, val: pd.DataFrame) ->
     return metrics
 
 
+def form_model_meta(params: dict[str, Any], metrics: dict[Any]) -> dict[str, Any]:
+    with open(resolve("data/raw/churn.csv.dvc")) as f:
+        data_md5 = yaml.safe_load(f)["outs"][0]["md5"]
+
+    return {
+        "name": params["train"]["model"],
+        "git_sha": get_git_sha(),
+        "python_version": platform.python_version(),
+        "hyperparams": params["train"].get(params["train"]["model"], {}),
+        "features": feature_columns(params),
+        "metrics": metrics,
+        "dvc_hash": data_md5,
+    }
+
+
 def main() -> None:
     params = load_params()
 
@@ -118,14 +134,7 @@ def main() -> None:
     meta_path = os.path.join(model_dir, "model_meta.json")
     os.makedirs(model_dir, exist_ok=True)
 
-    meta = {
-        "name": params["train"]["model"],
-        "git_sha": get_git_sha(),
-        "python_version": platform.python_version(),
-        "hyperparams": params["train"].get(params["train"]["model"], {}),
-        "features": feature_columns(params),
-        "metrics": metrics,
-    }
+    meta = form_model_meta(params, metrics)
     with open(meta_path, "w") as f:
         json.dump(meta, f, indent=2)
     log.info(f"Model meta saved to: {meta_path}")
