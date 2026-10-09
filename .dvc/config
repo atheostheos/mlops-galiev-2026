@@ -1,5 +1,6 @@
 [core]
     analytics = false
     remote = localremote
+    autostage = true
 ['remote "localremote"']
     url = ../../mlops-galiev-2026-dvcstore

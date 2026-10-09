@@ -78,8 +78,7 @@ def main() -> None:
         for name, split in splits.items()
     }
 
-    reports_dir = resolve(d["reports_dir"])
-    with open(os.path.join(reports_dir, "prepare_report.json"), "w") as f:
+    with open(os.path.join(processed_dir, "prepare_report.json"), "w") as f:
         json.dump(report, f, indent=2)
 
 
