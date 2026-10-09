@@ -1,6 +1,9 @@
 [core]
     analytics = false
-    remote = localremote
+    remote = minio
     autostage = true
 ['remote "localremote"']
     url = ../../mlops-galiev-2026-dvcstore
+['remote "minio"']
+    url = s3://mlops/churn
+    endpointurl = http://localhost:9000
