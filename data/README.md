@@ -32,15 +32,3 @@
   `internet_service = none`.
 - `avg_monthly_gb` обрезан снизу на 0.5 — у клиентов без интернета трафик всё равно ненулевой.
 - `total_charges` линейно зависим от `tenure_months * monthly_charges`, сильная коллинеарность.
-
-## Данные
-Remote лежит в локальом minio хранилище
-```
-dvc remote modify --local minio access_key_id <access_key>
-dvc remote modify --local minio secret_access_key <access_password>
-dvc pull
-```
-
-## Почему .dvc надо коммитить
-
-В .dvc хранится конфиг с точками доступа к данным. При настройке проекта с нуля доступен список источников для загрузки данных.
