@@ -11,6 +11,9 @@ data:
   test_size: 0.2
   val_size: 0.1
 
+reports:
+  dir: reports
+
 features:
   numeric:
     - tenure_months

@@ -21,11 +21,8 @@ from sklearn.impute import SimpleImputer
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import OneHotEncoder, StandardScaler
 
-from src.config import load_params
-
 
 def build_preprocessor(params: dict[str, Any]):
-    params = load_params()
     f = params["features"]
 
     num_pipe = Pipeline([("impute", SimpleImputer(strategy="median")), ("scale", StandardScaler())])

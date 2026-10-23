@@ -18,17 +18,17 @@ from __future__ import annotations
 import json
 import os
 import platform
-import sys
 from typing import Any
 
 import joblib
+import numpy as np
 import pandas as pd
 from sklearn.ensemble import GradientBoostingClassifier, RandomForestClassifier
 from sklearn.linear_model import LogisticRegression
-from sklearn.metrics import average_precision_score, f1_score, roc_auc_score
 from sklearn.pipeline import Pipeline
 
-from src.config import TARGET, feature_columns, get_git_sha, load_params, resolve
+from src.config import TARGET, feature_columns, git_sha, load_params, resolve
+from src.evaluate import compute_metrics
 from src.features import build_preprocessor
 from src.logging_setup import setup_logging
 
@@ -59,7 +59,7 @@ def build_model(params: dict[str, Any]):
         case "gradient_boosting":
             return GradientBoostingClassifier(random_state=seed, **cfg)
         case _:
-            return NotImplementedError(f"Uknown model name: {name}")
+            raise NotImplementedError(f"Unknown model name: {name}")
 
 
 def build_pipeline(params: dict[str, Any]) -> Pipeline:
@@ -75,30 +75,9 @@ def train_model(params: dict[str, Any], pipe: Pipeline, train: pd.DataFrame) -> 
     pipe.fit(train[feature_columns(params)], train[TARGET])
 
 
-def validate_model(params: dict[str, Any], pipe: Pipeline, val: pd.DataFrame) -> dict[Any]:
-    thresh = params["evaluate"]["threshold"]
-    min_roc_auc = params["evaluate"]["min_roc_auc"]
-
-    y_true = val[TARGET]
-
-    y_proba = pipe.predict_proba(val[feature_columns(params)])[:, 1]
-    y_pred = (y_proba >= thresh).astype(int)
-
-    metrics = {
-        "roc_auc": float(roc_auc_score(y_true, y_proba)),
-        "pr_auc": float(average_precision_score(y_true, y_proba)),
-        "f1": float(f1_score(y_true, y_pred)),
-    }
-
-    if metrics["roc_auc"] < min_roc_auc:
-        log.error(f"ROC-AUC {metrics['roc_auc']: .4f} is lower than specified threshold {min_roc_auc: .4f}")
-        sys.exit(1)
-
-    return metrics
-
-
 def main() -> None:
     params = load_params()
+    np.random.seed(params["seed"])
 
     data = load_dataset(params=params)
     log.info("Data loaded")
@@ -110,8 +89,13 @@ def main() -> None:
     train_model(params, pipe, data["train"])
     log.info("Model trained")
 
-    metrics = validate_model(params, pipe, data["val"])
+    metrics = compute_metrics(params, pipe, data["val"])
     log.info(f"Validation metrics: {metrics}")
+
+    reports_path = os.path.join(resolve(params["reports"]["dir"]), "train_metrics.json")
+    with open(reports_path, "w") as f:
+        json.dump(metrics, f, indent=2)
+    log.info(f"Metrics saved to: {reports_path}")
 
     model_dir = resolve(params["train"]["save_dir"])
     model_path = os.path.join(model_dir, "model.joblib")
@@ -120,7 +104,7 @@ def main() -> None:
 
     meta = {
         "name": params["train"]["model"],
-        "git_sha": get_git_sha(),
+        "git_sha": git_sha(),
         "python_version": platform.python_version(),
         "hyperparams": params["train"].get(params["train"]["model"], {}),
         "features": feature_columns(params),

@@ -39,12 +39,18 @@ def feature_columns(params: dict[str, Any]) -> list:
     return list(f["numeric"]) + list(f["categorical"]) + list(f["binary"])
 
 
-def get_git_sha() -> str:
-    return (
-        subprocess.check_output(["git", "rev-parse", "--short", "HEAD"], cwd=PROJECT_ROOT)
-        .decode("ascii")
-        .strip()
-    )
+def git_sha() -> str:
+    """Короткий хеш текущего коммита. В копии без .git обучение падать не должно."""
+    try:
+        out = subprocess.run(
+            ["git", "rev-parse", "--short", "HEAD"],
+            capture_output=True,
+            text=True,
+            check=True,
+        )
+        return out.stdout.strip()
+    except Exception:
+        return "unknown"
 
 
 TARGET = "churn"
