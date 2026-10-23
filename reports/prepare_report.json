@@ -1,14 +1,14 @@
 {
   "train": {
-    "size": 14000,
-    "churn_mean": 0.206
+    "size": 3500,
+    "churn_mean": 0.201
   },
   "val": {
-    "size": 2000,
-    "churn_mean": 0.206
+    "size": 500,
+    "churn_mean": 0.202
   },
   "test": {
-    "size": 4000,
-    "churn_mean": 0.206
+    "size": 1000,
+    "churn_mean": 0.202
   }
 }
