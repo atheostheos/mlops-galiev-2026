@@ -1,0 +1,135 @@
+schema: '2.0'
+stages:
+  generate:
+    cmd: python -m src.data.generate
+    deps:
+    - path: src/data/generate.py
+      hash: md5
+      md5: e65e0f35dfe3337d773ba76e594bf3bd
+      size: 5163
+    params:
+      params.yaml:
+        data.n_samples: 20000
+        seed: 42
+    outs:
+    - path: data/raw/churn.csv
+      hash: md5
+      md5: a0038705ffe95c3e1856f5f58bb0cbff
+      size: 1408863
+  prepare:
+    cmd: python -m src.data.prepare
+    deps:
+    - path: data/raw/churn.csv
+      hash: md5
+      md5: a0038705ffe95c3e1856f5f58bb0cbff
+      size: 1408863
+    - path: src/data/prepare.py
+      hash: md5
+      md5: b5a667116b1dbf91c07011e0bb012d72
+      size: 2455
+    params:
+      params.yaml:
+        data.test_size: 0.2
+        data.val_size: 0.1
+        seed: 42
+    outs:
+    - path: data/processed/test.csv
+      hash: md5
+      md5: ade80bf225716d28ad0c1454d2545fd3
+      size: 282733
+    - path: data/processed/train.csv
+      hash: md5
+      md5: 49b63665b5a47b55be26ddff6cc4f5be
+      size: 987187
+    - path: data/processed/val.csv
+      hash: md5
+      md5: 5e51e04b8dbda78562658ab3d8ca8114
+      size: 141025
+  train:
+    cmd: python -m src.train
+    deps:
+    - path: data/processed/train.csv
+      hash: md5
+      md5: 49b63665b5a47b55be26ddff6cc4f5be
+      size: 987187
+    - path: data/processed/val.csv
+      hash: md5
+      md5: 5e51e04b8dbda78562658ab3d8ca8114
+      size: 141025
+    - path: src/features.py
+      hash: md5
+      md5: 1960f3f23ecfa459799c875994c3a7e3
+      size: 1709
+    - path: src/train.py
+      hash: md5
+      md5: 4e7812cefe7b0171df19aec50e8ed080
+      size: 4075
+    params:
+      params.yaml:
+        features:
+          numeric:
+          - tenure_months
+          - monthly_charges
+          - total_charges
+          - num_support_calls
+          - avg_monthly_gb
+          categorical:
+          - contract_type
+          - internet_service
+          - payment_method
+          binary:
+          - has_tech_support
+          - is_senior
+        seed: 42
+        train:
+          save_dir: models
+          model: gradient_boosting
+          logreg:
+            C: 1.0
+            max_iter: 1000
+          random_forest:
+            n_estimators: 300
+            max_depth: 12
+            min_samples_leaf: 5
+          gradient_boosting:
+            n_estimators: 200
+            learning_rate: 0.05
+            max_depth: 3
+    outs:
+    - path: models/model.joblib
+      hash: md5
+      md5: f39a1689651be0bb17f9e92d62fe47ed
+      size: 276701
+    - path: models/model_meta.json
+      hash: md5
+      md5: b58edcf7e990d5f4a0814e00c967d190
+      size: 590
+    - path: reports/train_metrics.json
+      hash: md5
+      md5: 7c09ed3d688e8c582d3d92ed65f73d19
+      size: 94
+  evaluate:
+    cmd: python -m src.evaluate
+    deps:
+    - path: data/processed/test.csv
+      hash: md5
+      md5: ade80bf225716d28ad0c1454d2545fd3
+      size: 282733
+    - path: models/model.joblib
+      hash: md5
+      md5: f39a1689651be0bb17f9e92d62fe47ed
+      size: 276701
+    - path: src/evaluate.py
+      hash: md5
+      md5: 0a6b162c5ad110e19fd8c2994429dbab
+      size: 2470
+    params:
+      params.yaml:
+        evaluate:
+          threshold: 0.5
+          min_roc_auc: 0.75
+    outs:
+    - path: reports/eval_metrics.json
+      hash: md5
+      md5: 205f0f812947979f71327e6b4c4c4416
+      size: 95
