@@ -13,11 +13,11 @@ from __future__ import annotations
 import json
 import os
 import sys
-from typing import Any
+from typing import Any, Optional
 
 import joblib
 import pandas as pd
-from sklearn.metrics import average_precision_score, f1_score, roc_auc_score
+from sklearn.metrics import average_precision_score, f1_score, roc_auc_score, roc_curve
 from sklearn.pipeline import Pipeline
 
 from src.config import TARGET, feature_columns, load_params, resolve
@@ -26,7 +26,9 @@ from src.logging_setup import setup_logging
 log = setup_logging()
 
 
-def compute_metrics(params: dict[str, Any], pipe: Pipeline, df: pd.DataFrame) -> dict[str, float]:
+def compute_metrics(
+    params: dict[str, Any], pipe: Pipeline, df: pd.DataFrame, compute_roc: bool = False
+) -> tuple[dict[str, float], Optional[list[dict[str, float]]]]:
     thresh = params["evaluate"]["threshold"]
 
     y_true = df[TARGET]
@@ -34,11 +36,19 @@ def compute_metrics(params: dict[str, Any], pipe: Pipeline, df: pd.DataFrame) ->
     y_proba = pipe.predict_proba(df[feature_columns(params)])[:, 1]
     y_pred = (y_proba >= thresh).astype(int)
 
+    roc_points = None
+    if compute_roc:
+        fpr, tpr, _ = roc_curve(y_true, y_proba)
+        step = max(1, len(fpr) // 200)
+        roc_points = [
+            {"fpr": float(a), "tpr": float(b)} for a, b in zip(fpr[::step], tpr[::step], strict=True)
+        ]
+
     return {
         "roc_auc": float(roc_auc_score(y_true, y_proba)),
         "pr_auc": float(average_precision_score(y_true, y_proba)),
         "f1": float(f1_score(y_true, y_pred)),
-    }
+    }, roc_points
 
 
 def main() -> None:
@@ -54,7 +64,7 @@ def main() -> None:
     test = pd.read_csv(os.path.join(resolve(params["data"]["processed_dir"]), "test.csv"))
     log.info("Test data loaded")
 
-    metrics = compute_metrics(params, pipe, test)
+    metrics, roc_points = compute_metrics(params, pipe, test, compute_roc=True)
     log.info(f"Test metrics: {metrics}")
 
     reports_dir = resolve(params["reports"]["dir"])
@@ -62,7 +72,13 @@ def main() -> None:
     reports_path = os.path.join(reports_dir, "eval_metrics.json")
     with open(reports_path, "w") as f:
         json.dump(metrics, f, indent=2)
+        f.write("\n")
     log.info(f"Metrics saved to: {reports_path}")
+
+    roc_path = os.path.join(reports_dir, "roc.json")
+    with open(roc_path, "w", encoding="utf-8") as f:
+        json.dump(roc_points, f, indent=2)
+        f.write("\n")
 
     min_roc_auc = params["evaluate"]["min_roc_auc"]
     if metrics["roc_auc"] < min_roc_auc:

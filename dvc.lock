@@ -25,8 +25,8 @@ stages:
       size: 1408863
     - path: src/data/prepare.py
       hash: md5
-      md5: b5a667116b1dbf91c07011e0bb012d72
-      size: 2455
+      md5: 2634336b50c7ee487910fd3b82765355
+      size: 2477
     params:
       params.yaml:
         data.test_size: 0.2
@@ -56,14 +56,18 @@ stages:
       hash: md5
       md5: 5e51e04b8dbda78562658ab3d8ca8114
       size: 141025
+    - path: reports/validation.json
+      hash: md5
+      md5: 3e04da3220b33eac4b79f8c366b04626
+      size: 194
     - path: src/features.py
       hash: md5
       md5: 1960f3f23ecfa459799c875994c3a7e3
       size: 1709
     - path: src/train.py
       hash: md5
-      md5: 4e7812cefe7b0171df19aec50e8ed080
-      size: 4075
+      md5: 54e5fb96d1ec29616eaee71a859d843a
+      size: 4122
     params:
       params.yaml:
         features:
@@ -102,12 +106,12 @@ stages:
       size: 276701
     - path: models/model_meta.json
       hash: md5
-      md5: b58edcf7e990d5f4a0814e00c967d190
-      size: 590
+      md5: 08ee7fc3440416604eeba657ab6d1ae9
+      size: 591
     - path: reports/train_metrics.json
       hash: md5
-      md5: 7c09ed3d688e8c582d3d92ed65f73d19
-      size: 94
+      md5: 14b7a77a3122f800ee4711772c4ac802
+      size: 95
   evaluate:
     cmd: python -m src.evaluate
     deps:
@@ -121,8 +125,8 @@ stages:
       size: 276701
     - path: src/evaluate.py
       hash: md5
-      md5: 0a6b162c5ad110e19fd8c2994429dbab
-      size: 2470
+      md5: ef26c94b727c53c4e74674aad8b7dd3a
+      size: 3067
     params:
       params.yaml:
         evaluate:
@@ -131,5 +135,33 @@ stages:
     outs:
     - path: reports/eval_metrics.json
       hash: md5
-      md5: 205f0f812947979f71327e6b4c4c4416
-      size: 95
+      md5: e55fc94e98597e492cba5ebc4bb02596
+      size: 96
+    - path: reports/roc.json
+      hash: md5
+      md5: 55eb09da7a41ab3770e212ebf37e4956
+      size: 15302
+  validate:
+    cmd: python -m src.data.validate
+    deps:
+    - path: data/processed/train.csv
+      hash: md5
+      md5: 49b63665b5a47b55be26ddff6cc4f5be
+      size: 987187
+    - path: src/data/validate.py
+      hash: md5
+      md5: 8a2b054602dae77d36551eec74aab93a
+      size: 1578
+    params:
+      params.yaml:
+        validate:
+          min_rows: 5000
+          max_missing_share: 0.05
+          target_rate:
+          - 0.05
+          - 0.6
+    outs:
+    - path: reports/validation.json
+      hash: md5
+      md5: 3e04da3220b33eac4b79f8c366b04626
+      size: 194

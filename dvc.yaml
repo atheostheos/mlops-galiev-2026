@@ -23,6 +23,17 @@ stages:
       - data/processed/val.csv
       - data/processed/test.csv
 
+  validate:
+    cmd: python -m src.data.validate
+    deps:
+      - src/data/validate.py
+      - data/processed/train.csv
+    params:
+      - validate
+    metrics:
+      - reports/validation.json:
+          cache: false
+
   train:
     cmd: python -m src.train
     deps:
@@ -30,6 +41,7 @@ stages:
       - src/features.py
       - data/processed/train.csv
       - data/processed/val.csv
+      - reports/validation.json
     params:
       - seed
       - features
@@ -49,6 +61,11 @@ stages:
       - data/processed/test.csv
     params:
       - evaluate
+    plots:
+      - reports/roc.json:
+          x: fpr
+          y: tpr
+          cache: false
     metrics:
       - reports/eval_metrics.json:
           cache: false

@@ -1,0 +1,7 @@
+{
+  "rows not less than a set minimum": 1,
+  "missing share within limits": 1,
+  "churn rate within reasonable bounds": 1,
+  "no duplicate customers": 1,
+  "tenure within acceptable range": 1
+}

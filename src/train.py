@@ -77,8 +77,8 @@ def train_model(params: dict[str, Any], pipe: Pipeline, train: pd.DataFrame) -> 
 
 
 def form_model_meta(params: dict[str, Any], metrics: dict[Any]) -> dict[str, Any]:
-    with open(resolve("data/raw/churn.csv.dvc")) as f:
-        data_md5 = yaml.safe_load(f)["outs"][0]["md5"]
+    with open(resolve("dvc.lock")) as f:
+        data_md5 = yaml.safe_load(f)["stages"]["generate"]["outs"][0]["md5"]
 
     return {
         "name": params["train"]["model"],
@@ -105,12 +105,13 @@ def main() -> None:
     train_model(params, pipe, data["train"])
     log.info("Model trained")
 
-    metrics = compute_metrics(params, pipe, data["val"])
+    metrics, _ = compute_metrics(params, pipe, data["val"])
     log.info(f"Validation metrics: {metrics}")
 
     reports_path = os.path.join(resolve(params["reports"]["dir"]), "train_metrics.json")
     with open(reports_path, "w") as f:
         json.dump(metrics, f, indent=2)
+        f.write("\n")
     log.info(f"Metrics saved to: {reports_path}")
 
     model_dir = resolve(params["train"]["save_dir"])
@@ -121,6 +122,7 @@ def main() -> None:
     meta = form_model_meta(params, metrics)
     with open(meta_path, "w") as f:
         json.dump(meta, f, indent=2)
+        f.write("\n")
     log.info(f"Model meta saved to: {meta_path}")
 
     joblib.dump(pipe, model_path)
