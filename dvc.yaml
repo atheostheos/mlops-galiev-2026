@@ -35,10 +35,11 @@ stages:
           cache: false
 
   train:
-    cmd: python -m src.train
+    cmd: python -m src.train --no-mlflow
     deps:
       - src/train.py
       - src/features.py
+      - src/evaluate.py
       - data/processed/train.csv
       - data/processed/val.csv
       - reports/validation.json

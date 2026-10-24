@@ -16,6 +16,7 @@ htmlcov/
 # так работают `dvc metrics diff` и сравнение между коммитами
 /dvc_plots/*
 /reports/*
+!/reports/*.png
 !/reports/.gitkeep
 !/reports/*.json
 !/reports/*.md

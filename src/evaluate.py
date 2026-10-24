@@ -16,6 +16,7 @@ import sys
 from typing import Any, Optional
 
 import joblib
+import numpy as np
 import pandas as pd
 from sklearn.metrics import average_precision_score, f1_score, roc_auc_score, roc_curve
 from sklearn.pipeline import Pipeline
@@ -28,7 +29,7 @@ log = setup_logging()
 
 def compute_metrics(
     params: dict[str, Any], pipe: Pipeline, df: pd.DataFrame, compute_roc: bool = False
-) -> tuple[dict[str, float], Optional[list[dict[str, float]]]]:
+) -> tuple[dict[str, float], np.ndarray, Optional[list[dict[str, float]]]]:
     thresh = params["evaluate"]["threshold"]
 
     y_true = df[TARGET]
@@ -44,11 +45,15 @@ def compute_metrics(
             {"fpr": float(a), "tpr": float(b)} for a, b in zip(fpr[::step], tpr[::step], strict=True)
         ]
 
-    return {
-        "roc_auc": float(roc_auc_score(y_true, y_proba)),
-        "pr_auc": float(average_precision_score(y_true, y_proba)),
-        "f1": float(f1_score(y_true, y_pred)),
-    }, roc_points
+    return (
+        {
+            "roc_auc": float(roc_auc_score(y_true, y_proba)),
+            "pr_auc": float(average_precision_score(y_true, y_proba)),
+            "f1": float(f1_score(y_true, y_pred)),
+        },
+        y_proba,
+        roc_points,
+    )
 
 
 def main() -> None:
@@ -64,7 +69,7 @@ def main() -> None:
     test = pd.read_csv(os.path.join(resolve(params["data"]["processed_dir"]), "test.csv"))
     log.info("Test data loaded")
 
-    metrics, roc_points = compute_metrics(params, pipe, test, compute_roc=True)
+    metrics, _, roc_points = compute_metrics(params, pipe, test, compute_roc=True)
     log.info(f"Test metrics: {metrics}")
 
     reports_dir = resolve(params["reports"]["dir"])

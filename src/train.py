@@ -15,6 +15,7 @@ TODO (занятие 1): перенести сюда логику из notebooks
 
 from __future__ import annotations
 
+import argparse
 import json
 import os
 import platform
@@ -23,12 +24,11 @@ from typing import Any
 import joblib
 import numpy as np
 import pandas as pd
-import yaml
 from sklearn.ensemble import GradientBoostingClassifier, RandomForestClassifier
 from sklearn.linear_model import LogisticRegression
 from sklearn.pipeline import Pipeline
 
-from src.config import TARGET, feature_columns, git_sha, load_params, resolve
+from src.config import TARGET, data_md5, feature_columns, git_sha, load_params, resolve
 from src.evaluate import compute_metrics
 from src.features import build_preprocessor
 from src.logging_setup import setup_logging
@@ -77,9 +77,6 @@ def train_model(params: dict[str, Any], pipe: Pipeline, train: pd.DataFrame) -> 
 
 
 def form_model_meta(params: dict[str, Any], metrics: dict[Any]) -> dict[str, Any]:
-    with open(resolve("dvc.lock")) as f:
-        data_md5 = yaml.safe_load(f)["stages"]["generate"]["outs"][0]["md5"]
-
     return {
         "name": params["train"]["model"],
         "git_sha": git_sha(),
@@ -87,11 +84,15 @@ def form_model_meta(params: dict[str, Any], metrics: dict[Any]) -> dict[str, Any
         "hyperparams": params["train"].get(params["train"]["model"], {}),
         "features": feature_columns(params),
         "metrics": metrics,
-        "dvc_hash": data_md5,
+        "dvc_hash": data_md5(params["data"]["raw_path"]),
     }
 
 
 def main() -> None:
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--no-mlflow", action="store_true", help="обучить без логирования в MLflow")
+    args = parser.parse_args()
+
     params = load_params()
     np.random.seed(params["seed"])
 
@@ -105,7 +106,7 @@ def main() -> None:
     train_model(params, pipe, data["train"])
     log.info("Model trained")
 
-    metrics, _ = compute_metrics(params, pipe, data["val"])
+    metrics, y_proba, _ = compute_metrics(params, pipe, data["val"])
     log.info(f"Validation metrics: {metrics}")
 
     reports_path = os.path.join(resolve(params["reports"]["dir"]), "train_metrics.json")
@@ -127,6 +128,20 @@ def main() -> None:
 
     joblib.dump(pipe, model_path)
     log.info(f"Model saved to: {model_path}")
+
+    if params["mlflow"]["enabled"] and not args.no_mlflow:
+        from src.tracking import log_to_mlflow
+
+        y_true = data["val"][TARGET]
+        log_to_mlflow(
+            params,
+            pipe,
+            metrics,
+            y_proba,
+            y_true,
+            input_example=data["train"][feature_columns(params)].head(5),
+        )
+        log.info("Logged to MLflow")
 
 
 if __name__ == "__main__":

@@ -36,9 +36,9 @@ features:
 
 train:
   save_dir: models
-  model: gradient_boosting
+  model: logreg
   logreg:
-    C: 1.0
+    C: 0.5
     max_iter: 1000
   random_forest:
     n_estimators: 300
@@ -50,5 +50,11 @@ train:
     max_depth: 3
 
 evaluate:
-  threshold: 0.5
+  threshold: 0.245
   min_roc_auc: 0.75
+
+mlflow:
+  enabled: true
+  tracking_uri: http://localhost:5001
+  experiment_name: churn
+  registered_model_name: churn-classifier

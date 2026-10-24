@@ -46,7 +46,7 @@ stages:
       md5: 5e51e04b8dbda78562658ab3d8ca8114
       size: 141025
   train:
-    cmd: python -m src.train
+    cmd: python -m src.train --no-mlflow
     deps:
     - path: data/processed/train.csv
       hash: md5
@@ -60,14 +60,18 @@ stages:
       hash: md5
       md5: 3e04da3220b33eac4b79f8c366b04626
       size: 194
+    - path: src/evaluate.py
+      hash: md5
+      md5: 89305a57ef17dd072c0a2ebbc3d4b6af
+      size: 3159
     - path: src/features.py
       hash: md5
       md5: 1960f3f23ecfa459799c875994c3a7e3
       size: 1709
     - path: src/train.py
       hash: md5
-      md5: 54e5fb96d1ec29616eaee71a859d843a
-      size: 4122
+      md5: e211ca0b59df939a7b10ba062cb856a6
+      size: 4637
     params:
       params.yaml:
         features:
@@ -87,9 +91,9 @@ stages:
         seed: 42
         train:
           save_dir: models
-          model: gradient_boosting
+          model: logreg
           logreg:
-            C: 1.0
+            C: 0.5
             max_iter: 1000
           random_forest:
             n_estimators: 300
@@ -102,16 +106,16 @@ stages:
     outs:
     - path: models/model.joblib
       hash: md5
-      md5: f39a1689651be0bb17f9e92d62fe47ed
-      size: 276701
+      md5: 6006527df48e1b5c41b93db0a48215a7
+      size: 5674
     - path: models/model_meta.json
       hash: md5
-      md5: 08ee7fc3440416604eeba657ab6d1ae9
-      size: 591
+      md5: 48e5bd62dbac6a01d92ec362a4e0dc02
+      size: 546
     - path: reports/train_metrics.json
       hash: md5
-      md5: 14b7a77a3122f800ee4711772c4ac802
-      size: 95
+      md5: 6c1f9765045b7c98240d1e5dda9b5d0d
+      size: 97
   evaluate:
     cmd: python -m src.evaluate
     deps:
@@ -121,26 +125,26 @@ stages:
       size: 282733
     - path: models/model.joblib
       hash: md5
-      md5: f39a1689651be0bb17f9e92d62fe47ed
-      size: 276701
+      md5: 6006527df48e1b5c41b93db0a48215a7
+      size: 5674
     - path: src/evaluate.py
       hash: md5
-      md5: ef26c94b727c53c4e74674aad8b7dd3a
-      size: 3067
+      md5: 89305a57ef17dd072c0a2ebbc3d4b6af
+      size: 3159
     params:
       params.yaml:
         evaluate:
-          threshold: 0.5
+          threshold: 0.245
           min_roc_auc: 0.75
     outs:
     - path: reports/eval_metrics.json
       hash: md5
-      md5: e55fc94e98597e492cba5ebc4bb02596
-      size: 96
+      md5: e78866f542e58b0b5334a625e60a550a
+      size: 95
     - path: reports/roc.json
       hash: md5
-      md5: 55eb09da7a41ab3770e212ebf37e4956
-      size: 15302
+      md5: 6c040dcb8f42668bc9c299fa1783e786
+      size: 14579
   validate:
     cmd: python -m src.data.validate
     deps:
