@@ -29,6 +29,9 @@ eval:            ## Оценить модель на test и проверить 
 pipeline:        ## Воспроизвести пайплайн
 	dvc repro
 
+leaderboard:     ## Собрать таблицу лидеров из MLflow
+	$(PY) -m scripts.leaderboard
+
 test:            ## Прогнать тесты
 	pytest
 
