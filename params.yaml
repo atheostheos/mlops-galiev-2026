@@ -36,7 +36,7 @@ features:
 
 train:
   save_dir: models
-  model: random_forest
+  model: gradient_boosting
   logreg:
     C: 1.0
     max_iter: 1000
