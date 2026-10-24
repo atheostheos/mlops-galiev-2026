@@ -7,6 +7,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import os
 import subprocess
 from pathlib import Path
@@ -54,3 +55,17 @@ def git_sha() -> str:
 
 
 TARGET = "churn"
+
+
+def data_md5(path: str) -> str:
+    with open(resolve("dvc.lock"), encoding="utf-8") as f:
+        lock = yaml.safe_load(f)
+    for out in lock["stages"]["generate"]["outs"]:
+        if out["path"] == path:
+            return out["md5"]
+    return "unknown"
+
+
+def file_md5(path: str) -> str:
+    with open(path, "rb") as f:
+        return hashlib.md5(f.read()).hexdigest()
