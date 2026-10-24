@@ -26,6 +26,9 @@ train:           ## Обучить модель
 eval:            ## Оценить модель на test и проверить порог качества
 	$(PY) -m src.evaluate
 
+pipeline:        ## Воспроизвести пайплайн
+	dvc repro
+
 test:            ## Прогнать тесты
 	pytest
 

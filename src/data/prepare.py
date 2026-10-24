@@ -81,6 +81,7 @@ def main() -> None:
     reports_dir = resolve(params["reports"]["dir"])
     with open(os.path.join(reports_dir, "prepare_report.json"), "w") as f:
         json.dump(report, f, indent=2)
+        f.write("\n")
 
 
 if __name__ == "__main__":

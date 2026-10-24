@@ -44,3 +44,43 @@ F1 высчитывается по выбранному порогу. Техни
 | 6 | gradient_boosting | `n_estimators=400, learning_rate=0.1, max_depth=5` | 0.7747 | 0.4677 | 0.4122 |
 
 Ручная запись результатов требует много времени + есть шанс некорректно записать результаты. Можно было бы автоматизировать подбор гиперпараметров одним запуском и добавить формирование отчета.
+
+## DVC METRICS
+
+Проверка метрик с коммита `77012cc third experiment`
+
+```bash
+>> dvc metrics diff HEAD~2  
+
+Path                        Metric    HEAD~2    workspace    Change
+reports/train_metrics.json  f1        0.38752   0.37377      -0.01375
+reports/train_metrics.json  pr_auc    0.51928   0.50166      -0.01761
+reports/train_metrics.json  roc_auc   0.80858   0.80438      -0.0042
+reports/eval_metrics.json   f1        0.41868   0.39676      -0.02192
+reports/eval_metrics.json   pr_auc    0.52883   0.51453      -0.0143
+reports/eval_metrics.json   roc_auc   0.80744   0.79944      -0.008
+```
+
+```bash
+>> dvc metrics diff HEAD~1
+
+Path                        Metric    HEAD~1    workspace    Change
+reports/train_metrics.json  f1        0.36516   0.37377      0.00861
+reports/train_metrics.json  pr_auc    0.49248   0.50166      0.00918
+reports/train_metrics.json  roc_auc   0.79821   0.80438      0.00617
+reports/eval_metrics.json   f1        0.38736   0.39676      0.0094
+reports/eval_metrics.json   pr_auc    0.50667   0.51453      0.00786
+reports/eval_metrics.json   roc_auc   0.79552   0.79944      0.00393
+```
+
+```bash
+>> dvc metrics diff HEAD~2 HEAD~1
+
+Path                        Metric    HEAD~2    HEAD~1    Change
+reports/train_metrics.json  f1        0.38752   0.36516   -0.02236
+reports/train_metrics.json  pr_auc    0.51928   0.49248   -0.02679
+reports/train_metrics.json  roc_auc   0.80858   0.79821   -0.01037
+reports/eval_metrics.json   f1        0.41868   0.38736   -0.03131
+reports/eval_metrics.json   pr_auc    0.52883   0.50667   -0.02215
+reports/eval_metrics.json   roc_auc   0.80744   0.79552   -0.01193
+```
