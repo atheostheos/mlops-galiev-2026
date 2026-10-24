@@ -36,7 +36,7 @@ features:
 
 train:
   save_dir: models
-  model: logreg
+  model: random_forest
   logreg:
     C: 1.0
     max_iter: 1000

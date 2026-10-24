@@ -87,7 +87,7 @@ stages:
         seed: 42
         train:
           save_dir: models
-          model: logreg
+          model: random_forest
           logreg:
             C: 1.0
             max_iter: 1000
@@ -102,16 +102,16 @@ stages:
     outs:
     - path: models/model.joblib
       hash: md5
-      md5: 4cfc18ac074e10c261b7c6c72691d97f
-      size: 5674
+      md5: 083057ae11a63a829bba957e0d9b2f45
+      size: 30359163
     - path: models/model_meta.json
       hash: md5
-      md5: b53216d8a5df117a3d7ff6f50afb5d13
-      size: 545
+      md5: 3326527820a7e806356f3b8541f2df14
+      size: 590
     - path: reports/train_metrics.json
       hash: md5
-      md5: 0fa6482b8408c40c4f63b8046094a6dc
-      size: 96
+      md5: 82c657116e86e4cf150d662c0c8684d1
+      size: 97
   evaluate:
     cmd: python -m src.evaluate
     deps:
@@ -121,8 +121,8 @@ stages:
       size: 282733
     - path: models/model.joblib
       hash: md5
-      md5: 4cfc18ac074e10c261b7c6c72691d97f
-      size: 5674
+      md5: 083057ae11a63a829bba957e0d9b2f45
+      size: 30359163
     - path: src/evaluate.py
       hash: md5
       md5: ef26c94b727c53c4e74674aad8b7dd3a
@@ -135,12 +135,12 @@ stages:
     outs:
     - path: reports/eval_metrics.json
       hash: md5
-      md5: 7ab4eec675554e8f14c30c4f97a0d973
-      size: 95
+      md5: 8b7aa2b62c12eae0cab504710a49d50f
+      size: 93
     - path: reports/roc.json
       hash: md5
-      md5: 540016ff443e81600da7787cb69f0c5e
-      size: 14553
+      md5: 55d4d74209593050a5a9ee7f319d1619
+      size: 14853
   validate:
     cmd: python -m src.data.validate
     deps:
