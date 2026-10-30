@@ -42,7 +42,12 @@ def log_to_mlflow(params, pipe, metrics, y_proba, y_true, input_example) -> None
         mlflow.log_metrics(metrics)
         mlflow.set_tag("git_sha", git_sha())
         mlflow.log_artifact(resolve("params.yaml"))
-        mlflow.sklearn.log_model(pipe, artifact_path="model", input_example=input_example)
+        mlflow.sklearn.log_model(
+            pipe,
+            artifact_path="model",
+            input_example=input_example,
+            registered_model_name=cfg["registered_model_name"],
+        )
 
         # log graphs
         log_roc_curve(y_true, y_proba)
