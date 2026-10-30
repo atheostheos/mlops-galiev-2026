@@ -58,3 +58,11 @@ mlflow:
   tracking_uri: http://localhost:5001
   experiment_name: churn
   registered_model_name: churn-classifier
+
+service:
+  model_stage: Production
+  model_alias: champion
+  model_path: models/model.joblib
+
+promote:
+  min_gain: 0.005
