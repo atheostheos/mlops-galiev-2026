@@ -3,6 +3,8 @@ import os
 from datetime import datetime, timezone
 
 import joblib
+import numpy as np
+import pandas as pd
 
 from src.config import feature_columns, load_params, resolve
 from src.logging_setup import setup_logging
@@ -31,6 +33,42 @@ class ModelHolder:
         if params["mlflow"]["enabled"] and self._try_registry(params):
             return
         self._load_local(params)
+
+    def explain(self, df: pd.DataFrame, top_n: int = 5) -> dict:
+        """Give top_n biggest feature contributions."""
+        if not self.loaded:
+            raise RuntimeError("Model not loaded")
+        if top_n < 1:
+            raise ValueError("top_n must be >= 1")
+
+        try:
+            preprocessor = self.model.named_steps["preprocess"]
+            estimator = self.model.named_steps["model"]
+        except Exception as exc:
+            raise TypeError("Pipleine with preprocessor and estimator are expected") from exc
+
+        transformed = preprocessor.transform(df)
+        feature_names = preprocessor.get_feature_names_out()
+
+        if hasattr(estimator, "coef_"):
+            values = transformed.toarray() if hasattr(transformed, "toarray") else np.asarray(transformed)
+            coefficients = np.asarray(estimator.coef_)[0]
+            contributions = values[0] * coefficients
+            method = "linear_contribution"
+        elif hasattr(estimator, "feature_importances_"):
+            contributions = np.asarray(estimator.feature_importances_)
+            method = "global_importance"
+        else:
+            raise TypeError("Model does not support linear contributions or feature importances")
+
+        order = np.argsort(np.abs(contributions))[::-1][:top_n]
+        return {
+            "method": method,
+            "contributions": [
+                {"feature": str(feature_names[index]), "contribution": float(contributions[index])}
+                for index in order
+            ],
+        }
 
     def _try_registry(self, params) -> bool:
         try:
