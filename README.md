@@ -156,3 +156,88 @@ Collecting pandas<3.0,>=2.1 (from -r requirements.txt (line 4))
   Using cached pandas-2.3.3-cp311-cp311-manylinux_2_24_x86_64.manylinux_2_28_x86_64.whl.metadata (91 kB)
 ...
 ```
+
+## Скорость обработки 100 отдельных запросов и 1 батча
+
+```bash
+>> curl -s -o /dev/null -w 'Total: %{time_total}s\n' \
+  -X POST http://localhost:8000/predict/batch \
+  -H 'Content-Type: application/json' \
+  --data-binary "$(python -c 'import json; c=json.load(open("examples/request.json")); print(json.dumps({"items":[c]*100}))')"
+
+Total: 0.004913s
+
+>> time sh -c '
+for i in $(seq 1 100); do
+  curl -s -o /dev/null -X POST http://localhost:8000/predict \
+    -H "Content-Type: application/json" \
+    -d @examples/request.json
+done
+'
+
+sh -c   0.19s user 0.20s system 45% cpu 0.869 total
+```
+
+Итого: 0.005 сек за один батч и 0.869 сек за 100 отдельных запросов. Задержка связана с повторным исполненинем сетевых запросов, эндпоинта + отработки модели.
+
+## Контракт API
+
+Локальный адрес сервиса: `http://localhost:8000`. Интерактивная документация доступна по эндпоинту `/docs`.
+
+Запуск сервиса:
+```bash
+make serve
+```
+
+Для трейса запросов используется `X-Request-ID`. Заголовок можно передать в запросе, чтобы использовать свой идентификатор, иначе создается новый. Полученные хедэр передается в ответе.
+
+### Эндпоинты
+
+| Эндпоинт | Тело | Пример ответа |
+|---|---|---|
+| `GET /health` | - | `{"status":"ok","model_loaded":true,"model_version":"local:<version>"}` |
+| `POST /predict` | Customer | `{"churn_probability":0.42,"churn":1,"threshold":0.245,"model_version":"local:<version>"}` |
+| `POST /predict/batch` | `{"items":[Customer, ...]}`. От 1 до 1000 клиентов | `{"count":1,"predictions":[{"churn_probability":0.42,"churn":1,"threshold":0.245,"model_version":"local:<version>"}]}` |
+| `POST /explain` | Customer | `{"method":"linear_contribution","contributions":[{"feature":"...","contribution":0.12}],"model_version":"local:<version>"}`. Возвращает пять признаков, отсортированных по модулю веса в предсказании |
+| `POST /reload` | - | `{"status":"ok","model_loaded":true,"model_version":"local:<version>"}` |
+
+### Коды ответов
+
+| Код | Значение |
+|---|---|
+| `200` | Запрос обработан. `/health` может вернуть `degraded`, если процесс работает, но модель не загружена |
+| `422` | Некорректное тело запроса: отсутствует обязательное поле, значение вне диапазона, неизвестная категория или неверный размер батча |
+| `503` | Модель не загружена |
+| `500` | Непредвиденная ошибка |
+
+### Схема объекта Customer
+
+| Поле | Тип и ограничения |
+|---|---|
+| `tenure_months` | инт от 0 до 200 |
+| `monthly_charges` | флоат от 0 до 1000 |
+| `total_charges` | опциалнальный флоат >=0 |
+| `contract_type` | `month-to-month`, `one_year`, `two_year` |
+| `internet_service` | `fiber`, `dsl`, `none` |
+| `payment_method` | `electronic_check`, `mailed_check`, `bank_transfer`, `credit_card` |
+| `num_support_calls` |инт от 0 до 100 |
+| `has_tech_support` | инт, 0 или 1 |
+| `is_senior` | инт, 0 или 1 |
+| `avg_monthly_gb` | флоат от 0 до 5000 |
+
+Пример запроса:
+
+```json
+{
+  "tenure_months": 24,
+  "monthly_charges": 75.5,
+  "total_charges": 1812.0,
+  "contract_type": "one_year",
+  "internet_service": "fiber",
+  "payment_method": "electronic_check",
+  "num_support_calls": 2,
+  "has_tech_support": 1,
+  "is_senior": 0,
+  "avg_monthly_gb": 250.0
+}
+```
