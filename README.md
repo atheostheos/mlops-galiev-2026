@@ -93,3 +93,33 @@ logreg:
 ```
 В реальных условиях порог был бы подобран в зависимости от того, какая метрика приоритетнее: precision или recall.
 
+## Покрытие тестами
+
+```bash
+>> python -m pytest --cov=src --cov-report=term-missing
+
+--------- coverage: platform darwin, python 3.11.15-final-0 ----------
+Name                          Stmts   Miss  Cover   Missing
+-----------------------------------------------------------
+src/__init__.py                   0      0   100%
+src/config.py                    35     15    57%   34-35, 45-54, 61-66, 70-71
+src/data/__init__.py              0      0   100%
+src/data/generate.py             53     17    68%   35-37, 98-112, 118
+src/data/prepare.py              39      1    97%   88
+src/data/validate.py             24     24     0%   1-48
+src/evaluate.py                  54     38    30%   33-48, 60-92, 96
+src/features.py                  13      0   100%
+src/logging_setup.py              8      0   100%
+src/service/__init__.py           0      0   100%
+src/service/model_loader.py      66     66     0%   1-103
+src/smoke_check.py               33     33     0%   3-47
+src/tracking.py                  42     42     0%   1-64
+src/train.py                     79     47    41%   40-43, 58-63, 76, 80, 92-144, 148
+-----------------------------------------------------------
+TOTAL                           446    283    37%
+
+24 passed, 51 warnings in 0.47s
+```
+
+
+Покрытие `src` в 37%. Низкое покрытие связано с исключением из тестов CLI обработки и интеграций с сторонними сервисами. Интеграция с сторонними сервисами требует их активность во время тестов и наличие локальных артефактов. Для них нужны отдельные интеграционные тесты.
