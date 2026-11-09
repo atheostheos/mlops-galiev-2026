@@ -1,5 +1,7 @@
 # Churn MLOps — стартовый шаблон
 
+![CI](https://github.com/atheostheos/mlops-galiev-2026/actions/workflows/ci.yml/badge.svg)
+
 Это заготовка сквозного проекта курса. Здесь вы работаете весь семестр:
 к декабрю из неё вырастет ML-сервис с пайплайном, тестами, CI/CD и мониторингом.
 

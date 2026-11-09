@@ -5,6 +5,10 @@ on:
   push:
     branches: [main]
 
+permissions:
+  contents: read
+  pull-requests: write
+
 jobs:
   quality:
     runs-on: ubuntu-latest
@@ -20,6 +24,9 @@ jobs:
         run: |
           python -m pip install -U pip
           pip install -r requirements.txt -r requirements-dev.txt
+
+      - name: Форматирование кода
+        run: ruff format --check src tests
 
       - name: Линтер
         run: ruff check src tests
@@ -49,6 +56,52 @@ jobs:
           python -m src.data.prepare
           python -m src.train --no-mlflow
           python -m src.evaluate
+
+      - uses: actions/checkout@v4
+        if: github.event_name == 'pull_request'
+        with:
+          ref: ${{ github.event.pull_request.base.sha }}
+          path: baseline
+
+      - name: Воспроизвести пайплайн на таргет ветке
+        if: github.event_name == 'pull_request'
+        working-directory: baseline
+        run: |
+          python -m src.data.generate --n 4000
+          python -m src.data.prepare
+          python -m src.train --no-mlflow
+          python -m src.evaluate
+
+      - name: Опубликовать метрики в PR
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const base = JSON.parse(fs.readFileSync('baseline/reports/eval_metrics.json'));
+            const pr = JSON.parse(fs.readFileSync('reports/eval_metrics.json'));
+
+            const metrics = ['roc_auc', 'pr_auc', 'f1'];
+            const rows = metrics.map((key) => {
+              const delta = pr[key] - base[key];
+              const sign = delta > 0 ? '+' : '';
+              return `| ${key} | ${base[key].toFixed(4)} | ${pr[key].toFixed(4)} | ${sign}${delta.toFixed(4)} |`;
+            });
+
+            const body = [
+              '## Метрики этого PR',
+              '',
+              '| Метрика | Target | PR | delta |',
+              '|---|---:|---:|---:|',
+              ...rows,
+            ].join('\n');
+
+            await github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body,
+            });
 
       - name: Опубликовать метрики
         if: always()
