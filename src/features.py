@@ -30,7 +30,7 @@ def build_preprocessor(params: dict[str, Any]):
     cat_pipe = Pipeline(
         [
             ("impute", SimpleImputer(strategy="most_frequent")),
-            ("onehot", OneHotEncoder(handle_unknown="ignore", sparse_output=False)),
+            ("onehot", OneHotEncoder(handle_unknown="error", sparse_output=False)),
         ]
     )
 
