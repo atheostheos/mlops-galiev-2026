@@ -132,8 +132,27 @@ TOTAL                           446    283    37%
 
 Проверка в CI гарантирует корректную работу проекта на сконфигурированной с нуля среде.
 
+## Проверка работы CI
+- [Завышенный min_roc_auc](https://github.com/atheostheos/mlops-galiev-2026/pull/11)
+- [Некорректный код](https://github.com/atheostheos/mlops-galiev-2026/pull/13)
+
 ## Кеширование проверок в CI
 
 Первый прогон:
 - quality in 1m 19s
 - pipeline in 1m 19s
+Второй прогон:
+- quality in 1m 19s
+- pipeline in 1m 18s
+
+Время не измененилось, но скорее всего кеширование использовалось уже на первом прогоне
+
+Часть записанных логов со второго прогона, кеширование используется:
+```bash
+...
+Collecting numpy<3.0,>=1.26 (from -r requirements.txt (line 3))
+  Using cached numpy-2.4.6-cp311-cp311-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl.metadata (6.6 kB)
+Collecting pandas<3.0,>=2.1 (from -r requirements.txt (line 4))
+  Using cached pandas-2.3.3-cp311-cp311-manylinux_2_24_x86_64.manylinux_2_28_x86_64.whl.metadata (91 kB)
+...
+```
