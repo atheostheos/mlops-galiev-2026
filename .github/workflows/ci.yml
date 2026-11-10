@@ -109,3 +109,26 @@ jobs:
         with:
           name: metrics
           path: reports/
+
+      - name: Сохранить модель для сборки Докер образа
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: service-model
+          path: models/
+          if-no-files-found: error
+
+  docker:
+    needs: pipeline
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Скачать модель
+        uses: actions/download-artifact@v4
+        with:
+          name: service-model
+          path: models/
+
+      - name: Собрать Докер образ
+        run: make docker-build
