@@ -241,3 +241,74 @@ make serve
   "avg_monthly_gb": 250.0
 }
 ```
+
+## Docker
+
+### Фиксирование базового образа
+
+Для повторяемости сборки при сборке хеши базовых образов зафиксированы. Этим гарантируется, что при повторной сборке не подтянется новая версия образа с тем же тегом, в котором новая среда ломает сервис. 
+При наличии новых найденных уязвимостей потребуется вручную обновлять версию образа и фиксировать новый хеш, но зато с дргой стороны есть воспроизводимость и остуствие непредвиденных ошибок. 
+
+### Контекст сборки с .dockerignore
+
+Вместе с `.dockerignore` контекст сборки меньше 5мб
+
+```bash
+=> [internal] load .dockerignore                                                 
+=> => transferring context: 183B
+=> [internal] load build context 
+=> => transferring context: 3.03kB
+```
+
+### Найденные уязвимости
+
+[Отчет о найденных уязвимостях](reports/trivy-report.txt)
+
+Среди уязвимости нет CRITICAL, все HIGH.
+
+Среди них большая связана с базовый debian образом. Все из них, кроме zlib1g, еще не пофикшены. Версия не обновлена, так как библиотека не используется в сервисе.
+
+Найдено две 2 уязвимости библиотек питона. Исходные версии оставлены для сохранения совместимости библиотек м-у собой.
+
+### Размеры образов после оптимизации
+
+|IMAGE | DISK USAGE | CONTENT SIZE |
+|------|------------|--------------|
+|churn-service:base | 3.37GB | 769MB |       
+|churn-service:ignore | 3.37GB | 769MB |                       
+|churn-service:slim | 2.39GB | 514MB |
+|churn-service:multistage | 1.96GB | 410MB | 
+|churn-service:local | 767MB | 162MB |
+
+Размер образа после добавления .dockerignore не изменился, так как базовый образ изначально копировал только нужные файлы. Это повлияло только на контекст сборки.
+
+### Слои образа
+
+```bash
+>> docker history churn-service:local
+
+IMAGE          CREATED             CREATED BY                                      SIZE      COMMENT
+dcc01b6f941d   About an hour ago   CMD ["uvicorn" "src.service.app:app" "--host…   0B        buildkit.dockerfile.v0
+<missing>      About an hour ago   HEALTHCHECK &{["CMD-SHELL" "python -c \"impo…   0B        buildkit.dockerfile.v0
+<missing>      About an hour ago   EXPOSE [8000/tcp]                               0B        buildkit.dockerfile.v0
+<missing>      About an hour ago   USER appuser                                    0B        buildkit.dockerfile.v0
+<missing>      About an hour ago   ENV PYTHONUNBUFFERED=1 PYTHONDONTWRITEBYTECO…   0B        buildkit.dockerfile.v0
+<missing>      About an hour ago   COPY models/ ./models/ # buildkit               24.6kB    buildkit.dockerfile.v0
+<missing>      About an hour ago   COPY params.yaml ./params.yaml # buildkit       12.3kB    buildkit.dockerfile.v0
+<missing>      About an hour ago   COPY src/ ./src/ # buildkit                     315kB     buildkit.dockerfile.v0
+<missing>      About an hour ago   COPY /install /usr/local # buildkit             437MB     buildkit.dockerfile.v0
+<missing>      About an hour ago   WORKDIR /app                                    8.19kB    buildkit.dockerfile.v0
+<missing>      About an hour ago   RUN /bin/sh -c useradd --create-home --uid 1…   69.6kB    buildkit.dockerfile.v0
+<missing>      5 days ago          CMD ["python3"]                                 0B        buildkit.dockerfile.v0
+<missing>      5 days ago          RUN /bin/sh -c set -eux;  for src in idle3 p…   16.4kB    buildkit.dockerfile.v0
+<missing>      5 days ago          RUN /bin/sh -c set -eux;   savedAptMark="$(a…   52.1MB    buildkit.dockerfile.v0
+<missing>      5 days ago          ENV PYTHON_SHA256=9120e0a653868f6e3698d36cdd…   0B        buildkit.dockerfile.v0
+<missing>      5 days ago          ENV PYTHON_VERSION=3.11.18                      0B        buildkit.dockerfile.v0
+<missing>      5 days ago          ENV GPG_KEY=A035C8C19219BA821ECEA86B64E628F8…   0B        buildkit.dockerfile.v0
+<missing>      5 days ago          RUN /bin/sh -c set -eux;  apt-get update;  a…   4.97MB    buildkit.dockerfile.v0
+<missing>      5 days ago          ENV LANG=C.UTF-8                                0B        buildkit.dockerfile.v0
+<missing>      5 days ago          ENV PATH=/usr/local/bin:/usr/local/sbin:/usr…   0B        buildkit.dockerfile.v0
+<missing>      5 days ago          # debian.sh --arch 'arm64' out/ 'trixie' '@1…   110MB     debuerreotype 0.17
+```
+
+Самый тяжелый слой - копирование среды. Следует уделять внимание наличию лишних библотек и не раздувать образ лишними зависимостями. Это согласуется и с этапами оптимизации: после использования `requirements-service.txt` размер образа уменьшился в 2.5 раза.

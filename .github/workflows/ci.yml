@@ -109,3 +109,11 @@ jobs:
         with:
           name: metrics
           path: reports/
+
+  docker:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Собрать Докер образ
+        run: make docker-build
