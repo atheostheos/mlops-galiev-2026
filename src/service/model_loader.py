@@ -75,7 +75,8 @@ class ModelHolder:
             import mlflow
             from mlflow import MlflowClient
 
-            mlflow.set_tracking_uri(params["mlflow"]["tracking_uri"])
+            tracking_uri = os.getenv("MLFLOW_TRACKING_URI", params["mlflow"]["tracking_uri"])
+            mlflow.set_tracking_uri(tracking_uri)
             name = params["mlflow"]["registered_model_name"]
             alias = params["service"]["model_alias"]
 

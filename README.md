@@ -312,3 +312,66 @@ dcc01b6f941d   About an hour ago   CMD ["uvicorn" "src.service.app:app" "--host�
 ```
 
 Самый тяжелый слой - копирование среды. Следует уделять внимание наличию лишних библотек и не раздувать образ лишними зависимостями. Это согласуется и с этапами оптимизации: после использования `requirements-service.txt` размер образа уменьшился в 2.5 раза.
+
+## Compose
+
+### Схема тенда
+
+```mermaid
+flowchart LR
+    user["Юзер"]
+
+    subgraph compose["Docker Compose"]
+        api["api\n:8000"]
+        mlflow["mlflow\n:5000"]
+        postgres["postgres\n:5432"]
+        minio["minio\ns3:9000\nweb:9001"]
+        init["minio-init"]
+        pgdata[("pgdata")]
+        miniodata[("miniodata")]
+        models[("./models\nмаунт\nRO")]
+
+        api -->|"MLFLOW_TRACKING_URI"| mlflow
+        mlflow -->|"метаданные"| postgres
+        mlflow -->|"артефакты моделей"| minio
+        init -->|"инициализация хранилища"| minio
+        postgres --- pgdata
+        minio --- miniodata
+        api --- models
+    end
+
+    user -->|"localhost:8000"| api
+    user -->|"localhost:5001"| mlflow
+    user -->|"localhost:9001"| minio
+```
+
+### Ограничение ресурсов
+
+```bash
+>> docker stats
+CONTAINER ID   NAME                     CPU %     MEM USAGE / LIMIT   MEM %     NET I/O           BLOCK I/O     PIDS
+8d76cfcaa52f   churn-mlops-api-1        0.20%     197MiB / 512MiB     38.48%    39.2kB / 19.7kB   0B / 36.9kB   24
+48d8acd8b2d4   churn-mlops-mlflow-1     0.02%     464.5MiB / 512MiB   90.72%    63.6kB / 17.3kB   1.39MB / 0B   101
+8af05a992f5c   churn-mlops-postgres-1   0.00%     26.02MiB / 256MiB   10.17%    67.4kB / 65.8kB   0B / 618kB    9
+c389ed3d71c4   churn-mlops-minio-1      0.00%     80.35MiB / 256MiB   31.39%    39kB / 42.1kB     0B / 287kB    8
+```
+
+### Проверка отказоустойчивости
+
+Сервис продолжает работать после остановки mlflow
+
+```bash
+>> docker compose --env-file .env -p churn-mlops -f docker/docker-compose.yml --profile full stop mlflow
+[+] stop 1/1
+ ✔ Container churn-mlops-mlflow-1 Stopped 1.2s
+
+>> curl -s -X POST localhost:8000/predict \
+  -H 'Content-Type: application/json' \
+  -d @examples/request.json | jq
+{
+  "churn_probability": 0.929669,
+  "churn": 1,
+  "threshold": 0.245,
+  "model_version": "registry:churn-classifier@champion"
+}
+```

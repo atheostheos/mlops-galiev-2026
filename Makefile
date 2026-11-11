@@ -1,6 +1,6 @@
 # Будет расти по ходу курса. Правило: команду, которую приходится
 # вспоминать по истории терминала, оформляем целью здесь.
-.PHONY: help install check data prepare train eval test lint
+.PHONY: help install check data prepare train eval test lint up down slim-up slim-down
 
 PY := python
 
@@ -46,3 +46,15 @@ docker-build:    ## Собрать образ
 
 docker-run:      ## Запустить контейнер
 	docker run --rm -p 8000:8000 -v $(PWD)/models:/app/models:ro churn-service:local
+
+up:              ## Поднять стенд
+	docker compose --env-file .env -f docker/docker-compose.yml --profile full up -d
+
+down:            ## Погасить стенд
+	docker compose --env-file .env -f docker/docker-compose.yml --profile full down
+
+slim-up:              ## Поднять облегченный стенд
+	docker compose --env-file .env -f docker/docker-compose.slim.yml up -d
+
+slim-down:            ## Погасить облегченный стенд
+	docker compose -f docker/docker-compose.slim.yml down
