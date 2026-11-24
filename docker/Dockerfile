@@ -27,6 +27,9 @@ ENV PYTHONUNBUFFERED=1 \
 USER appuser
 EXPOSE 8000
 
+ENV MLFLOW_HTTP_REQUEST_MAX_RETRIES=1 \
+    MLFLOW_HTTP_REQUEST_TIMEOUT=5
+
 HEALTHCHECK --interval=30s --timeout=3s --start-period=15s --retries=3 \
     CMD python -c "import httpx,sys; sys.exit(0 if httpx.get('http://localhost:8000/health').json()['model_loaded'] else 1)"
 
